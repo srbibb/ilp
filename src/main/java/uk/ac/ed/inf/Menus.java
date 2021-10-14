@@ -59,7 +59,7 @@ public class Menus {
                 shops = new Gson().fromJson(menus, listType);
 
             } catch (IOException | InterruptedException e) {
-                System.out.println("Something went wrong when trying to communicate with server. Please try again.");
+                System.err.println("Something went wrong when trying to communicate with server. Please try again.");
                 System.exit(1);
             }
         }

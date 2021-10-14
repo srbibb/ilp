@@ -36,7 +36,7 @@ public class Shop {
         }
 
         /**
-         * @return an integer containing the price 
+         * @return an integer containing the price
          */
         public int getPence() {
             return pence;
