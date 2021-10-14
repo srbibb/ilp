@@ -10,21 +10,21 @@ public class AppTest {
     private static final String RELEASE_DATE = "September 28, 2021";
 
     private final LongLat appletonTower = new LongLat(-3.186874, 55.944494);
-    private final LongLat businessSchool = new LongLat(-3.1873, 55.9430);
-    private final LongLat greyfriarsKirkyard = new LongLat(-3.1928, 55.9469);
+    private final LongLat businessSchool = new LongLat(-3.1873,55.9430);
+    private final LongLat greyfriarsKirkyard = new LongLat(-3.1928,55.9469);
 
     @Test
-    public void testIsConfinedTrueA() {
+    public void testIsConfinedTrueA(){
         assertTrue(appletonTower.isConfined());
     }
 
     @Test
-    public void testIsConfinedTrueB() {
+    public void testIsConfinedTrueB(){
         assertTrue(businessSchool.isConfined());
     }
 
     @Test
-    public void testIsConfinedFalse() {
+    public void testIsConfinedFalse(){
         assertFalse(greyfriarsKirkyard.isConfined());
     }
 
@@ -33,7 +33,7 @@ public class AppTest {
     }
 
     @Test
-    public void testDistanceTo() {
+    public void testDistanceTo(){
         double calculatedDistance = 0.0015535481968716011;
         assertTrue(approxEq(appletonTower.distanceTo(businessSchool), calculatedDistance));
     }
@@ -44,10 +44,13 @@ public class AppTest {
         assertTrue(appletonTower.closeTo(alsoAppletonTower));
     }
 
+
     @Test
     public void testCloseToFalse(){
         assertFalse(appletonTower.closeTo(businessSchool));
     }
+
+
     private boolean approxEq(LongLat l1, LongLat l2) {
         return approxEq(l1.longitude, l2.longitude) &&
                 approxEq(l1.latitude, l2.latitude);
@@ -133,6 +136,7 @@ public class AppTest {
         // Don't forget the standard delivery charge of 50p
         assertEquals(230 + 50, totalCost);
     }
+
     @Test
     public void testMenusTwo() {
         // The webserver must be running on port 9898 to run this test.
@@ -185,7 +189,6 @@ public class AppTest {
         // Don't forget the standard delivery charge of 50p
         assertEquals(4 * 460 + 50, totalCost);
     }
-
 
 
 }
