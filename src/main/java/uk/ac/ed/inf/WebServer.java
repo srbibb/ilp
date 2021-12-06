@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.mapbox.geojson.*;
 
-import java.awt.geom.Line2D;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
@@ -23,16 +22,18 @@ public class WebServer {
     private final String machineName;
     /** The port which the web server is running on */
     private final String portName;
-
+    private final HashMap<String, String> shopMap;
+    private final HashMap<String, LongLat> locationMap;
 
     /**
      * Constructor for WebServer class.
      * @param port specifies the port where the web server is running
      */
     public WebServer(String port) {
-
         machineName = "localhost";
         portName = port;
+        shopMap = parseShops();
+        locationMap = parseShopLocations();
     }
 
     /**
@@ -81,7 +82,7 @@ public class WebServer {
      * is sold in to a HashMap, to find the relevant shop for each item.
      * @return HashMap of the name of each menu item and the shop which sells it
      */
-    public HashMap<String, String> parseShops() {
+    private HashMap<String, String> parseShops() {
         String urlString = "http://" + machineName +":" + portName + "/menus/menus.json";
         String shopInput;
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
@@ -119,7 +120,7 @@ public class WebServer {
      * location in to a HashMap, to find the relevant shop for each item.
      * @return HashMap of the name of each shop and its location in what three words
      */
-    public HashMap<String, LongLat> parseShopLocations() {
+    private HashMap<String, LongLat> parseShopLocations() {
         String urlString = "http://" + machineName +":" + portName + "/menus/menus.json";
         String shopInput;
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
@@ -181,8 +182,6 @@ public class WebServer {
         String mapInput;
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
         HttpResponse<String> response;
-        final ArrayList<Line2D.Double> noFlyZone = new ArrayList<>();
-        final ArrayList<Point> nfzConvexHull = new ArrayList<>();
 
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -194,7 +193,6 @@ public class WebServer {
 
             ArrayList<Polygon> polygons = new ArrayList<>();
 
-            //TODO make polygons not bad
             for (Feature feature: features) {
                 polygons.add((Polygon)feature.geometry());
             }
@@ -202,12 +200,6 @@ public class WebServer {
             List<List<Point>> coordinateLists = new ArrayList<>();
             for (Polygon polygon : polygons) {
                 coordinateLists.add(polygon.coordinates().get(0));
-                List<Point> coordinates = coordinateLists.get(0);
-                for (int i=0; i < coordinates.size()-1; i++) {
-                    Line2D.Double line = new Line2D.Double(coordinates.get(i).longitude(),coordinates.get(i).latitude(),
-                            coordinates.get(i+1).longitude(),coordinates.get(i+1).latitude());
-                    noFlyZone.add(line);
-                }
             }
 
             return coordinateLists;
@@ -247,5 +239,13 @@ public class WebServer {
             System.exit(1);
             return null;
         }
+    }
+
+    public HashMap<String, String> getShopMap() {
+        return shopMap;
+    }
+
+    public HashMap<String, LongLat> getLocationMap() {
+        return locationMap;
     }
 }

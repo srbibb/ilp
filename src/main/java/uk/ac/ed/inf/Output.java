@@ -13,17 +13,11 @@ public class Output {
         try {
             File myObj = new File("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
             Files.deleteIfExists(myObj.toPath());
-            if (myObj.createNewFile()) {
-                System.out.println("File created: " + myObj.getName());
-            } else {
-                System.out.println("File already exists.");
+            if (myObj.createNewFile()){
+                FileWriter myWriter = new FileWriter("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
+                myWriter.write(pathFeatures.toJson());
+                myWriter.close();
             }
-
-            FileWriter myWriter = new FileWriter("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
-            myWriter.write(pathFeatures.toJson());
-            myWriter.close();
-            System.out.println("Successfully wrote to the file.");
-
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();

@@ -13,27 +13,32 @@ public class Path {
     private final ArrayList<Line2D.Double> noFlyZoneLines = new ArrayList<>();
     private final LongLat appletonTower;
     private final ArrayList<LineString> movesLines = new ArrayList<>();
-    private final ArrayList<LongLat> moves = new ArrayList<>();
+    private final ArrayList<Move> moves = new ArrayList<>();
     private final ArrayList<LongLat> landmarks;
     private final HashMap<String, LongLat> shopLocations;
-    List<List<Point>> noFlyZonePoints;
-    ArrayList<Point> allPoints = new ArrayList<>();
-    ArrayList<Line2D.Double> convexHullLines = new ArrayList<>();
+    private final ArrayList<Line2D.Double> convexHullLines = new ArrayList<>();
     double totalCost = 0;
     double deliveredCost = 0;
-    ArrayList<LongLat> currentPath = new ArrayList<>();
     ArrayList<Order> delivered = new ArrayList<>();
+    double orderCount;
+    //TODO make local again
+    Order currentOrder;
 
 
     public Path(ArrayList<Order> orderList, WebServer server){
         orders = orderList;
-        /** The WebServer which can parse information on menu items and cost */
+        orderCount = orders.size();
+        final List<List<Point>> noFlyZonePoints;
+        final ArrayList<Point> allPoints = new ArrayList<>();
         noFlyZonePoints = server.parseNoFlyZone();
         appletonTower = new LongLat(-3.186874, 55.944494);
         currentLoc = appletonTower;
         landmarks = server.parseLandmarks();
-        shopLocations = server.parseShopLocations();
+        shopLocations = server.getLocationMap();
+        generateNFZ(noFlyZonePoints,allPoints);
+    }
 
+    public void generateNFZ(List<List<Point>> noFlyZonePoints, ArrayList<Point> allPoints) {
         for (List<Point> building : noFlyZonePoints) {
             for (int i=0; i < building.size()-1; i++) {
                 Line2D.Double line = new Line2D.Double(building.get(i).longitude(),building.get(i).latitude(),
@@ -103,7 +108,7 @@ public class Path {
         }
         boolean outOfMoves;
         while (!orders.isEmpty()) {
-            Order currentOrder = chooseOrder();
+            currentOrder = chooseOrder();
             outOfMoves = getOrder(currentOrder);
             if (outOfMoves) {
                 break;
@@ -133,7 +138,6 @@ public class Path {
 
             }
         }
-        System.out.println("order chosen");
         return currentOrd;
     }
 
@@ -151,7 +155,6 @@ public class Path {
                 }
             }
         }
-        System.out.println("order chosen");
         return currentOrd;
     }
 
@@ -163,9 +166,9 @@ public class Path {
         moveToGoal(appletonTower);
         System.out.println("delivered: " + deliveredCost);
         System.out.println("total: " + totalCost);
-        System.out.println("percentage: " + (deliveredCost/totalCost)*100 + "%");
+        System.out.println("percentage income: " + (deliveredCost/totalCost)*100 + "%");
+        System.out.println("percentage deliveries: " + (delivered.size()/orderCount)*100 + "%");
         System.out.println("moves: " + moves.size());
-        getPathFeatures();
     }
 
     public boolean getOrder(Order currentOrder) {
@@ -174,7 +177,7 @@ public class Path {
             LongLat goal = getShopLocation(shop);
             findGoal(goal);
             currentLoc = currentLoc.nextPosition(-999);
-            System.out.println("reached: " + shop);
+            moves.add(new Move(currentOrder.getOrderNo(),currentLoc,-999,currentLoc));
             noMoves = checkMoves();
         }
         return noMoves;
@@ -184,12 +187,12 @@ public class Path {
         LongLat goal = currentOrder.getDeliverTo();
         findGoal(goal);
         currentLoc = currentLoc.nextPosition(-999);
-        System.out.println("delivered order!");
+        moves.add(new Move(currentOrder.getOrderNo(),currentLoc,-999,currentLoc));
         return checkMoves();
     }
 
     public boolean checkMoves() {
-        return (1500 - moves.size()) < 100;
+        return (1500 - moves.size()) <= 100;
         /*
         LongLat tempCurrentLoc = currentLoc;
         findGoal(appletonTower);
@@ -231,6 +234,7 @@ public class Path {
         int angle;
         LongLat newMove = currentLoc;
         LongLat testMove;
+        int chosenAngle = 0;
         double minDist = Double.POSITIVE_INFINITY;
         for (int i = 0; i < 36; i++) {
             angle = i*10;
@@ -238,20 +242,22 @@ public class Path {
             if (validMove(currentLoc,testMove) & (testMove.distanceTo(goal) < minDist)) {
                 minDist = testMove.distanceTo(goal);
                 newMove = testMove;
+                chosenAngle = angle;
             }
         }
 
-        Point currentPoint = Point.fromLngLat(currentLoc.longitude, currentLoc.latitude);
-        Point newPoint = Point.fromLngLat(newMove.longitude, newMove.latitude);
+        Point currentPoint = Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude());
+        Point newPoint = Point.fromLngLat(newMove.getLongitude(), newMove.getLatitude());
         List<Point> points = Arrays.asList(currentPoint,newPoint);
         movesLines.add(LineString.fromLngLats(points));
-        moves.add(newMove);
+        moves.add(new Move(currentOrder.getOrderNo(),currentLoc,chosenAngle,newMove));
         return newMove;
     }
 
     public boolean validMove(LongLat currentLoc, LongLat newLoc) {
         boolean valid = true;
-        Line2D.Double plannedMove = new Line2D.Double(currentLoc.longitude,currentLoc.latitude,newLoc.longitude,newLoc.latitude);
+        Line2D.Double plannedMove = new Line2D.Double(currentLoc.getLongitude(),
+                currentLoc.getLatitude(),newLoc.getLongitude(),newLoc.getLatitude());
 
         for (Line2D.Double line : noFlyZoneLines) {
             if (plannedMove.intersectsLine(line)) {
@@ -275,19 +281,14 @@ public class Path {
         ArrayList<Feature> feature = new ArrayList<>();
         FeatureCollection pathFeatures;
 
-        for (List<Point> building : noFlyZonePoints) {
-            feature.add(Feature.fromGeometry(LineString.fromLngLats(building)));
-        }
-
         for (LineString line : movesLines) {
             feature.add(Feature.fromGeometry(line));
         }
-
-        for (LongLat landmark : landmarks) {
-            feature.add(Feature.fromGeometry(Point.fromLngLat(landmark.longitude, landmark.latitude)));
-        }
-
         pathFeatures = FeatureCollection.fromFeatures(feature);
         return pathFeatures;
+    }
+
+    public ArrayList<Move> getFlightpath() {
+        return moves;
     }
 }

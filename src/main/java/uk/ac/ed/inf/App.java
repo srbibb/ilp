@@ -26,6 +26,7 @@ public class App {
             pathFeatures = path.getPathFeatures();
             Output.createMap(pathFeatures,day,month,year);
             db.writeOrders(delivered);
+            db.writeFlightpath(path.getFlightpath());
         } catch (SQLException dbUnavailable) {
             System.err.println("Something went wrong when trying to communicate with database. Please try again.");
             System.exit(1);

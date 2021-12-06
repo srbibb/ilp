@@ -7,9 +7,9 @@ package uk.ac.ed.inf;
 public class LongLat {
 
     /** The longitude of the represented point */
-    public double longitude;
+    private final double longitude;
     /** The latitude of the represented point */
-    public double latitude;
+    private final double latitude;
 
     /**
      * Constructor for LongLat class.
@@ -21,6 +21,13 @@ public class LongLat {
         latitude = lat;
     }
 
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
 
     public LongLat(What3Words.LngLat coordinates) {
         longitude = coordinates.getLng();

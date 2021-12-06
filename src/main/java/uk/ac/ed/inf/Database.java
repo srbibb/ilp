@@ -6,14 +6,6 @@ import java.util.HashMap;
 
 public class Database {
     /**
-     * The name of the machine the database is running on
-     */
-    private final String machineName;
-    /**
-     * The port which the database is running on
-     */
-    private final String portName;
-    /**
      * The day to find orders for
      */
     private final String day;
@@ -29,10 +21,6 @@ public class Database {
      * The string constructed to access the database containing the machine name, port name, and database name
      */
     private final String jdbcString;
-    /**
-     * The list of orders found for the chosen date
-     */
-    private final ArrayList<Order> orders = new ArrayList<>();
 
     /**
      * Constructor for Database class.
@@ -43,15 +31,21 @@ public class Database {
      * @param port specifies the port where the database is running
      */
     public Database(String inputDay, String inputMonth, String inputYear, String port) {
-        machineName = "localhost";
-        portName = port;
+        /**
+         * The name of the machine the database is running on
+         */
+        String machineName = "localhost";
+        /**
+         * The port which the database is running on
+         */
         day = inputDay;
         month = inputMonth;
         year = inputYear;
-        jdbcString = "jdbc:derby://" + machineName + ":" + portName + "/derbyDB";
+        jdbcString = "jdbc:derby://" + machineName + ":" + port + "/derbyDB";
     }
 
     public ArrayList<Order> getOrders(WebServer server) throws SQLException {
+        ArrayList<Order> orders = new ArrayList<>();
         Connection conn = DriverManager.getConnection(jdbcString);
         String orderDate = year + "-" + month + "-" + day;
         ArrayList<String> orderList = new ArrayList<>();
@@ -91,8 +85,7 @@ public class Database {
                 orders.get(orderNo).setDeliveryAddress(orderW3W);
                 orders.get(orderNo).setDeliverTo(server.parseWhatThreeWords(orderW3W));
             }
-            HashMap<String,String> shopMap;
-            shopMap = server.parseShops();
+            HashMap<String, String> shopMap = server.getShopMap();
             orders.get(orderNo).setShops(shopMap);
             orderNo += 1;
         }
@@ -102,18 +95,14 @@ public class Database {
     public void writeOrders(ArrayList<Order> orders) throws SQLException {
         Connection conn = DriverManager.getConnection(jdbcString);
         Statement statement = conn.createStatement();
-        String orderDate = year + "-" + month + "-" + day;
-
 
         DatabaseMetaData databaseMetadata = conn.getMetaData();
-
 
         ResultSet resultSet =
                 databaseMetadata.getTables(null, null, "DELIVERIES", null);
         if (resultSet.next()) {
             statement.execute("drop table deliveries");
         }
-
 
         statement.execute(
                 "create table deliveries(" +
@@ -131,7 +120,44 @@ public class Database {
             psDeliveries.execute();
         }
 
-        System.out.println("successfully written to database");
+    }
+
+    public void writeFlightpath(ArrayList<Move> moves) throws SQLException {
+        Connection conn = DriverManager.getConnection(jdbcString);
+        Statement statement = conn.createStatement();
+
+        DatabaseMetaData databaseMetadata = conn.getMetaData();
+
+        ResultSet resultSet =
+                databaseMetadata.getTables(null, null, "FLIGHTPATH", null);
+        if (resultSet.next()) {
+            statement.execute("drop table flightpath");
+        }
+
+
+        statement.execute(
+                "create table flightpath(" +
+                        "orderNo char(8)," +
+                        "fromLongitude double," +
+                        "fromLatitude double," +
+                        "angle int," +
+                        "toLongitude double," +
+                        "toLatitude double)");
+
+
+        final String flightpathStatement = "insert into flightpath values (?, ?, ?, ?, ?, ?)";
+        PreparedStatement psFlightpath = conn.prepareStatement(flightpathStatement);
+
+        for (Move move: moves) {
+            psFlightpath.setString(1, move.getOrderNo());
+            psFlightpath.setDouble(2, move.getStartPoint().getLongitude());
+            psFlightpath.setDouble(3, move.getStartPoint().getLatitude());
+            psFlightpath.setInt(4,move.getAngle());
+            psFlightpath.setDouble(5,move.getEndPoint().getLongitude());
+            psFlightpath.setDouble(6,move.getEndPoint().getLatitude());
+            psFlightpath.execute();
+        }
+
 
     }
 }
