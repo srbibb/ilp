@@ -21,6 +21,12 @@ public class LongLat {
         latitude = lat;
     }
 
+
+    public LongLat(What3Words.LngLat coordinates) {
+        longitude = coordinates.getLng();
+        latitude = coordinates.getLat();
+    }
+
     /**
      * Checks whether the point is between the longitude -3.184319 and -3.192473,
      * and that the latitude is between 55.942617 and 55.946233.
@@ -73,5 +79,8 @@ public class LongLat {
 
     }
 
+    public void print() {
+        System.out.println(longitude + " " + latitude);
+    }
 }
 
