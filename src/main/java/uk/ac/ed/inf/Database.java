@@ -60,10 +60,9 @@ public class Database {
             orderList.add(order);
         }
 
-        int orderNo = 0;
+        int i = 0;
         for (String order : orderList) {
-            orders.add(new Order());
-            orders.get(orderNo).setOrderNo(order);
+            orders.add(new Order(order));
             final String orderDetailsQuery =
                     "select * from orderDetails where orderNo=(?)";
             PreparedStatement psOrderDetailsQuery =
@@ -72,7 +71,7 @@ public class Database {
             ResultSet rsDetails = psOrderDetailsQuery.executeQuery();
             while (rsDetails.next()) {
                 String orderDetail = rsDetails.getString("item");
-                orders.get(orderNo).addItem(orderDetail);
+                orders.get(i).addItem(orderDetail);
             }
             final String orderW3WQuery =
                     "select * from orders where orderNo=(?)";
@@ -82,12 +81,12 @@ public class Database {
             ResultSet rsW3W = psOrderW3WQuery.executeQuery();
             while (rsW3W.next()) {
                 String orderW3W = rsW3W.getString("deliverTo");
-                orders.get(orderNo).setDeliveryAddress(orderW3W);
-                orders.get(orderNo).setDeliverTo(server.parseWhatThreeWords(orderW3W));
+                orders.get(i).setDeliveryAddress(orderW3W);
+                orders.get(i).setDeliverTo(server.parseWhatThreeWords(orderW3W));
             }
             HashMap<String, String> shopMap = server.getShopMap();
-            orders.get(orderNo).setShops(shopMap);
-            orderNo += 1;
+            orders.get(i).setShops(shopMap);
+            i += 1;
         }
         return orders;
     }

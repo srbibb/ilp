@@ -24,7 +24,7 @@ public class App {
             Path path = new Path(orders,server);
             delivered = path.generatePath(menu);
             pathFeatures = path.getPathFeatures();
-            Output.createMap(pathFeatures,day,month,year);
+            path.createMap(pathFeatures,day,month,year);
             db.writeOrders(delivered);
             db.writeFlightpath(path.getFlightpath());
         } catch (SQLException dbUnavailable) {

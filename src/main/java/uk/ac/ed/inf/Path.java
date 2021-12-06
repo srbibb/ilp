@@ -2,8 +2,11 @@ package uk.ac.ed.inf;
 
 import com.mapbox.geojson.*;
 import java.awt.geom.Line2D;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -12,7 +15,7 @@ public class Path {
     LongLat currentLoc;
     private final ArrayList<Line2D.Double> noFlyZoneLines = new ArrayList<>();
     private final LongLat appletonTower;
-    private final ArrayList<LineString> movesLines = new ArrayList<>();
+    private final ArrayList<Point> movesLines = new ArrayList<>();
     private final ArrayList<Move> moves = new ArrayList<>();
     private final ArrayList<LongLat> landmarks;
     private final HashMap<String, LongLat> shopLocations;
@@ -177,6 +180,8 @@ public class Path {
             LongLat goal = getShopLocation(shop);
             findGoal(goal);
             currentLoc = currentLoc.nextPosition(-999);
+            movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
+            movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
             moves.add(new Move(currentOrder.getOrderNo(),currentLoc,-999,currentLoc));
             noMoves = checkMoves();
         }
@@ -187,6 +192,8 @@ public class Path {
         LongLat goal = currentOrder.getDeliverTo();
         findGoal(goal);
         currentLoc = currentLoc.nextPosition(-999);
+        movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
+        movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
         moves.add(new Move(currentOrder.getOrderNo(),currentLoc,-999,currentLoc));
         return checkMoves();
     }
@@ -245,11 +252,8 @@ public class Path {
                 chosenAngle = angle;
             }
         }
-
-        Point currentPoint = Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude());
-        Point newPoint = Point.fromLngLat(newMove.getLongitude(), newMove.getLatitude());
-        List<Point> points = Arrays.asList(currentPoint,newPoint);
-        movesLines.add(LineString.fromLngLats(points));
+        movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
+        movesLines.add(Point.fromLngLat(newMove.getLongitude(), newMove.getLatitude()));
         moves.add(new Move(currentOrder.getOrderNo(),currentLoc,chosenAngle,newMove));
         return newMove;
     }
@@ -278,17 +282,30 @@ public class Path {
     }
 
     public FeatureCollection getPathFeatures() {
-        ArrayList<Feature> feature = new ArrayList<>();
+        Feature feature;
         FeatureCollection pathFeatures;
 
-        for (LineString line : movesLines) {
-            feature.add(Feature.fromGeometry(line));
-        }
-        pathFeatures = FeatureCollection.fromFeatures(feature);
+        feature = Feature.fromGeometry(LineString.fromLngLats(movesLines));
+        pathFeatures = FeatureCollection.fromFeature(feature);
         return pathFeatures;
     }
 
     public ArrayList<Move> getFlightpath() {
         return moves;
+    }
+
+    public void createMap(FeatureCollection pathFeatures,String day,String month,String year) {
+        try {
+            File myObj = new File("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
+            Files.deleteIfExists(myObj.toPath());
+            if (myObj.createNewFile()){
+                FileWriter myWriter = new FileWriter("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
+                myWriter.write(pathFeatures.toJson());
+                myWriter.close();
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
     }
 }

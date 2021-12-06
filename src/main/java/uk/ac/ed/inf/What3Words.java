@@ -1,7 +1,5 @@
 package uk.ac.ed.inf;
 
-import java.util.List;
-
 /**
  * Represents the details related to each What3Words entry on the server,
  * including the location, the location of the nearest place, the words,

@@ -12,8 +12,8 @@ public class Order {
     private Set<String> shops;
     private int cost;
 
-    public void setOrderNo(String number) {
-        orderNo = number;
+    public Order(String orderNumber) {
+        orderNo = orderNumber;
     }
 
     public void addItem(String orderItem) {
