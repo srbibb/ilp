@@ -85,9 +85,5 @@ public class LongLat {
         return new LongLat(newLongitude, newLatitude);
 
     }
-
-    public void print() {
-        System.out.println(longitude + " " + latitude);
-    }
 }
 

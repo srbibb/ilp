@@ -28,7 +28,7 @@ public class Menus {
      * the price. It finds the prices from the HashMap of prices for each item, and
      * combines these prices with the service cost of 50p to return the final price.
      * @param deliveries a list of Strings containing an order of items from the menu
-     * @return the calculated price in pence
+     * @return an integer containing the calculated price in pence
      */
     public int getDeliveryCost(ArrayList<String> deliveries) {
         int price = 50;

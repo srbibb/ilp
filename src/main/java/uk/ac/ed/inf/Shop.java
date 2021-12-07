@@ -3,8 +3,8 @@ package uk.ac.ed.inf;
 import java.util.List;
 
 /**
- * Represents the shops included in the menu file from the web server,
- * containing their name, location, and the list of items on their menu.
+ * Represents the shops included in the menu file from the web server.
+ * Contains their name, location, and the list of items on their menu.
  */
 public class Shop {
     /** the name of the shop */

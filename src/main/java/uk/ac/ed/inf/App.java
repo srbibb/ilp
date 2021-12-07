@@ -1,11 +1,24 @@
 package uk.ac.ed.inf;
 
 import com.mapbox.geojson.FeatureCollection;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+/**
+ * The main class of the drone application. Contains the necessary instances of
+ * the WebServer, Database, and Path, and calls the functions to conduct the drone
+ * operation, as well as creating the output files.
+ */
 public class App {
+    /**
+     * The entry point of application. Gets the orders from the database, and passes
+     * these to the Path class to get the list of orders which are successfully delivered,
+     * as well as the GeoJSON features of the flightpath. It then calls the methods to write
+     * the GeoJSON string to a file, and write both the flightpath and the list of delivered
+     * orders to their respective tables in the database.
+     *
+     * @param args the input arguments from the command line
+     */
     public static void main(String[] args) {
         String day = args[0];
         String month = args[1];

@@ -128,7 +128,7 @@ public class Path {
         return delivered;
     }
 
-    public Order chooseOrder() {
+    public Order chooseOrderCost() {
         //money
         double highestCost = 0;
         double currentCost;
@@ -144,7 +144,7 @@ public class Path {
         return currentOrd;
     }
 
-    public Order chooseOrderDist() {
+    public Order chooseOrder() {
         //distance
         double closestDist = Double.POSITIVE_INFINITY;
         double currentDist;
@@ -166,6 +166,7 @@ public class Path {
     }
 
     public void endDeliveries() {
+        currentOrder = new Order(null);
         moveToGoal(appletonTower);
         System.out.println("delivered: " + deliveredCost);
         System.out.println("total: " + totalCost);
@@ -207,7 +208,6 @@ public class Path {
         currentLoc = tempCurrentLoc;
         boolean noMoves = ((1500-moves.size())<distance+50);
         return noMoves;
-
          */
 
     }

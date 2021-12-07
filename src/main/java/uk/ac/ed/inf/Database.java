@@ -4,6 +4,11 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+/**
+ * Contains the functions required for the application to be able to access
+ * the database. It gets the orders made by users and writes the orders delivered
+ * and the flightpath taken after the given day of deliveries is completed.
+ */
 public class Database {
     /**
      * The day to find orders for
@@ -25,35 +30,40 @@ public class Database {
     /**
      * Constructor for Database class.
      *
-     * @param inputDay specifies the day to find orders for
+     * @param inputDay   specifies the day to find orders for
      * @param inputMonth specifies the month to find orders for
-     * @param inputYear specifies the year to find orders for
-     * @param port specifies the port where the database is running
+     * @param inputYear  specifies the year to find orders for
+     * @param port       specifies the port where the database is running
      */
     public Database(String inputDay, String inputMonth, String inputYear, String port) {
-        /**
-         * The name of the machine the database is running on
-         */
         String machineName = "localhost";
-        /**
-         * The port which the database is running on
-         */
         day = inputDay;
         month = inputMonth;
         year = inputYear;
         jdbcString = "jdbc:derby://" + machineName + ":" + port + "/derbyDB";
     }
 
+    /**
+     * Gets the orders for the requested day, which are stored on the database.
+     * It connects to the database and creates an sql query to specify the needed
+     * orders. It then finds the items associated with each order, and also assigns the
+     * delivery address, each shop to be visited, and coordinates to the instance of Order.
+     *
+     * @param server the server, used to find the locations of each shop
+     * @return an ArrayList containing the orders received from the database
+     * @throws SQLException the sql exception if the database is not available
+     */
     public ArrayList<Order> getOrders(WebServer server) throws SQLException {
         ArrayList<Order> orders = new ArrayList<>();
         Connection conn = DriverManager.getConnection(jdbcString);
-        String orderDate = year + "-" + month + "-" + day;
+        String date = year + "-" + month + "-" + day;
+        Date orderDate = java.sql.Date.valueOf(date);
         ArrayList<String> orderList = new ArrayList<>();
         final String orderQuery =
                 "select * from orders where deliveryDate=(?)";
         PreparedStatement psOrderQuery =
                 conn.prepareStatement(orderQuery);
-        psOrderQuery.setString(1, orderDate);
+        psOrderQuery.setDate(1, orderDate);
         ResultSet rs = psOrderQuery.executeQuery();
         while (rs.next()) {
             String order = rs.getString("orderNo");
@@ -91,6 +101,15 @@ public class Database {
         return orders;
     }
 
+    /**
+     * Writes the orders which were successfully delivered during the day's deliveries
+     * to the database. It will check if a deliveries table already exists and drop
+     * it if it does, and then write each order with its order number, delivery address and
+     * the cost of the order in pence to the newly created deliveries table.
+     *
+     * @param orders the orders which were delivered by the drone
+     * @throws SQLException the sql exception if the database is not available
+     */
     public void writeOrders(ArrayList<Order> orders) throws SQLException {
         Connection conn = DriverManager.getConnection(jdbcString);
         Statement statement = conn.createStatement();
@@ -121,6 +140,17 @@ public class Database {
 
     }
 
+    /**
+     * Writes the flightpath the drone took while delivering the day's orders
+     * to the database. It will check if a deliveries table already exists and drop
+     * it if it does, and then write each move the drone made. This includes the starting
+     * latitude and longitude, the ending latitude and longitude, the angle the move was
+     * made at, and order number the drone was picking up or delivering when the move was
+     * made. If the drone is returning to Appleton Tower at the end of the day, the order
+     * number value will contain null instead.
+     * @param moves the moves
+     * @throws SQLException the sql exception
+     */
     public void writeFlightpath(ArrayList<Move> moves) throws SQLException {
         Connection conn = DriverManager.getConnection(jdbcString);
         Statement statement = conn.createStatement();
