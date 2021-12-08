@@ -29,7 +29,7 @@ public class What3Words {
     }
 
     /**
-     * Represents the coordinates which are used to define this location as a square
+     * Represents the coordinates which are used to define this location as a square.
      */
     public static class Square{
         /** the coordinates of the southwest corner of this square */
@@ -39,19 +39,25 @@ public class What3Words {
     }
 
     /**
-     * Represents a pair of coordinates as a latitude and longitude
+     * Represents a pair of coordinates as a latitude and longitude.
      */
     public static class LngLat{
         /** the longitude of this location */
-        private Double lng;
+        private double lng;
         /** the latitude of this location */
-        private Double lat;
+        private double lat;
 
-        public Double getLng() {
+        /**
+         * @return a double with the longitude of this location
+         */
+        public double getLng() {
             return lng;
         }
 
-        public Double getLat() {
+        /**
+         * @return a double with the latitude of this location
+         */
+        public double getLat() {
             return lat;
         }
     }

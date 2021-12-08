@@ -10,55 +10,69 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * Contains the functions required for the application to generate the path the drone will
+ * take and write the details of the path taken to the output file and tables.
+ */
 public class Path {
-    ArrayList<Order> orders;
-    LongLat currentLoc;
-    private final ArrayList<Line2D.Double> noFlyZoneLines = new ArrayList<>();
-    private final LongLat appletonTower;
-    private final ArrayList<Point> movesLines = new ArrayList<>();
-    private final ArrayList<Move> moves = new ArrayList<>();
-    private final ArrayList<LongLat> landmarks;
-    private final HashMap<String, LongLat> shopLocations;
+    /** the list of orders from the database */
+    private final ArrayList<Order> orders;
+    /** the lines which define the convex hull of the points defining the no-fly zone */
     private final ArrayList<Line2D.Double> convexHullLines = new ArrayList<>();
+    /** a list of landmarks obtained from the server */
+    private final ArrayList<LongLat> landmarks;
+    /** each of the shops and the coordinates of their locations */
+    private final HashMap<String, LongLat> shopLocations;
+    /** the location of appleton tower */
+    private final LongLat appletonTower;
+    /** a list of the moves made by the drone */
+    private final ArrayList<Move> moves = new ArrayList<>();
+    /** the lines representing each move which is made by the drone */
+    private final ArrayList<Point> movesLines = new ArrayList<>();
+    /** the current location of the drone, starts at appleton tower */
+    private LongLat currentLoc;
+    /** the total cost of all the orders from the day */
     double totalCost = 0;
+    /** the total cost of all the orders which are delivered */
     double deliveredCost = 0;
+    /** a list of all the orders which are delivered */
     ArrayList<Order> delivered = new ArrayList<>();
+    /** the total amount of orders */
     double orderCount;
-    //TODO make local again
+    /** the current order being picked up or delivered */
     Order currentOrder;
 
 
+    /**
+     * Constructor for the Path class. The points which define the no-fly zone are obtained
+     * from the server and used to create a convex hull of all the points in the no-fly zone.
+     * The shop locations and Appleton Tower are added to the list of landmarks obtained from
+     * the web server.
+     *
+     * @param orderList the list of orders obtained from the database
+     * @param server    an instance of WebServer, used to get the building locations
+     */
     public Path(ArrayList<Order> orderList, WebServer server){
         orders = orderList;
         orderCount = orders.size();
-        final List<List<Point>> noFlyZonePoints;
-        final ArrayList<Point> allPoints = new ArrayList<>();
-        noFlyZonePoints = server.parseNoFlyZone();
+        final ArrayList<Point> noFlyZonePoints = server.parseNoFlyZone();
         appletonTower = new LongLat(-3.186874, 55.944494);
         currentLoc = appletonTower;
         landmarks = server.parseLandmarks();
         shopLocations = server.getLocationMap();
-        generateNFZ(noFlyZonePoints,allPoints);
-    }
-
-    public void generateNFZ(List<List<Point>> noFlyZonePoints, ArrayList<Point> allPoints) {
-        for (List<Point> building : noFlyZonePoints) {
-            for (int i=0; i < building.size()-1; i++) {
-                Line2D.Double line = new Line2D.Double(building.get(i).longitude(),building.get(i).latitude(),
-                        building.get(i+1).longitude(),building.get(i+1).latitude());
-                noFlyZoneLines.add(line);
-            }
-        }
-
-        for (List<Point> building : noFlyZonePoints) {
-            allPoints.addAll(building);
-        }
-
         landmarks.addAll(shopLocations.values());
-        convexHull(allPoints);
+        landmarks.add(appletonTower);
+        convexHull(noFlyZonePoints);
     }
 
-    public void convexHull(List<Point> points) {
+    /**
+     * Creates a convex hull of the points defining the no-fly zone. It finds the leftmost
+     * point and moves counter-clockwise round the points the find a selection of points
+     * which surround the rest of the points, until it returns to the leftmost point.
+     *
+     * @param points the points which define the no-fly zone that create the convex hull
+     */
+    private void convexHull(List<Point> points) {
         List<Point> result = new ArrayList<>();
         int length = points.size();
 
@@ -67,20 +81,21 @@ public class Path {
             if (points.get(i).longitude()<points.get(leftmost).longitude())
                 leftmost = i;
 
-        int p = leftmost, pointq;
+        int hullPoint = leftmost;
+        int endpoint;
 
         do {
-            result.add(points.get(p));
-            pointq = (p + 1) % length;
+            result.add(points.get(hullPoint));
+            endpoint = (hullPoint + 1) % length;
             for (int i = 0; i<length; i++) {
-                if (OrientationMatch(points.get(p), points.get(i), points.get(pointq)) == 2) {
-                    pointq = i;
+                if (Orientation(points.get(hullPoint), points.get(i), points.get(endpoint))) {
+                    endpoint = i;
                 }
             }
-            p = pointq;
+            hullPoint = endpoint;
         }
-        //TODO why is this like this (make whole function understandable)
-        while (p != leftmost);
+        while (hullPoint != leftmost);
+
         int resultSize = result.size();
         for (int i = 0; i < resultSize-1; i++) {
             Line2D.Double line = new Line2D.Double(result.get(i).longitude(),result.get(i).latitude(),
@@ -92,21 +107,33 @@ public class Path {
         convexHullLines.add(line);
     }
 
-    public static int OrientationMatch(Point check1, Point check2, Point check3) {
-        double val = (check2.latitude() - check1.latitude()) * (check3.longitude() - check2.longitude()) -
-                (check2.longitude() - check1.longitude()) * (check3.latitude() - check2.latitude());
-        if (val == 0)
-            return 0;
-        return (val > 0) ? 1 : 2;
+    /**
+     * Checks the orientation of 3 points, that value2 is counter-clockwise for these points.
+     *
+     * @param value1 the 1st value to get checked
+     * @param value2 the 2nd value to get checked
+     * @param value3 the 3rd value to get checked
+     * @return true if value2 is most counter-clockwise
+     */
+    private static boolean Orientation(Point value1, Point value2, Point value3) {
+        double check = (value2.latitude() - value1.latitude()) * (value3.longitude() - value2.longitude()) -
+                (value2.longitude() - value1.longitude()) * (value3.latitude() - value2.latitude());
+        return check < 0;
     }
 
-    public LongLat getShopLocation(String shop) {
-        return shopLocations.get(shop);
-    }
-
-    public ArrayList<Order> generatePath(Menus menu) {
+    /**
+     * Generates the path taken by the drone. It calculates the total cost for the orders made.
+     * Until there are no more orders, or it runs out of moves, it then selects the order with the
+     * closest shop to its current location, and moves towards this shop to collect the items.
+     * Once it has arrived at each of the shops it checks again that it has enough moves to return to
+     * Appleton Tower, and then takes the items to the delivery location. After delivery, it updates
+     * the total cost of delivered items, and the list of delivered orders, before removing the order
+     * from the order list.
+     *
+     * @return an ArrayList containing all the orders which were successfully delivered
+     */
+    public ArrayList<Order> generatePath() {
         for (Order order: orders) {
-            order.setCost(getOrderPrice(menu,order));
             totalCost += order.getCost();
         }
         boolean outOfMoves;
@@ -128,30 +155,19 @@ public class Path {
         return delivered;
     }
 
-    public Order chooseOrderCost() {
-        //money
-        double highestCost = 0;
-        double currentCost;
-        Order currentOrd = orders.get(0);
-        for (Order order : orders) {
-            currentCost = order.getCost();
-            if (currentCost > highestCost) {
-                highestCost = currentCost;
-                currentOrd = order;
-
-            }
-        }
-        return currentOrd;
-    }
-
-    public Order chooseOrder() {
-        //distance
+    /**
+     * Chooses the next order to be collected and delivered by the drone. It chooses whichever order
+     * has a shop to collect items from which is closest to the drone's current location.
+     *
+     * @return an Order containing the chosen order
+     */
+    private Order chooseOrder() {
         double closestDist = Double.POSITIVE_INFINITY;
         double currentDist;
         Order currentOrd = orders.get(0);
         for (Order order : orders) {
             for (String shop: order.getShopList()) {
-                currentDist = currentLoc.distanceTo(getShopLocation(shop));
+                currentDist = currentLoc.distanceTo(shopLocations.get(shop));
                 if (currentDist < closestDist) {
                     closestDist = currentDist;
                     currentOrd = order;
@@ -161,11 +177,13 @@ public class Path {
         return currentOrd;
     }
 
-    public int getOrderPrice(Menus menus, Order currentOrder) {
-        return menus.getDeliveryCost(currentOrder.getItems());
-    }
-
-    public void endDeliveries() {
+    /**
+     * Carries out the functions to complete the drone delivery service. The drone returns to
+     * Appleton Tower. It then outputs the delivered cost and the total cost, as well as the percentage
+     * of the total cost that was successfully delivered, and the percentage of orders which were
+     * successfully delivered. It also outputs the total number of moves made during the day's operations.
+     */
+    private void endDeliveries() {
         currentOrder = new Order(null);
         moveToGoal(appletonTower);
         System.out.println("delivered: " + deliveredCost);
@@ -175,69 +193,125 @@ public class Path {
         System.out.println("moves: " + moves.size());
     }
 
-    public boolean getOrder(Order currentOrder) {
+    /**
+     * Collects items of the current order from the respective shops. For each item in the order,
+     * it finds the shop closest to the current location and moves towards it until it is close to it.
+     * It then hovers at the shop to collect the item, and updates the moves to reflect this. It
+     * then checks if the drone needs to return to Appleton tower.
+     *
+     * @param currentOrder the current order which is being collected
+     * @return a boolean stating whether the drone must finish deliveries
+     */
+    private boolean getOrder(Order currentOrder) {
         boolean noMoves = false;
-        for (String shop : currentOrder.getShopList()) {
-            LongLat goal = getShopLocation(shop);
+        ArrayList<String> shops = new ArrayList<>(currentOrder.getShopList());
+        while (!shops.isEmpty()) {
+            String currentShop = closestShop(shops);
+            LongLat goal = shopLocations.get(currentShop);
             findGoal(goal);
             currentLoc = currentLoc.nextPosition(-999);
-            movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
-            movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
-            moves.add(new Move(currentOrder.getOrderNo(),currentLoc,-999,currentLoc));
+            updateMoves(currentLoc,currentLoc,-999);
             noMoves = checkMoves();
+            shops.remove(currentShop);
         }
         return noMoves;
     }
 
-    public boolean deliverOrder(Order currentOrder) {
+    /**
+     * @param shopList the list of shops to be searched
+     * @return a String containing the name of the closest shop
+     */
+    private String closestShop(ArrayList<String> shopList) {
+        double minDist = Double.POSITIVE_INFINITY;
+        String currentShop = "";
+        for (String shop : shopList) {
+            if (currentLoc.distanceTo(shopLocations.get(shop)) < minDist) {
+                minDist = currentLoc.distanceTo(shopLocations.get(shop));
+                currentShop = shop;
+            }
+        }
+        return currentShop;
+    }
+
+    /**
+     * Delivers the collected items to the specified delivery point. It moves towards
+     * the delivery point until it is close to it, then hovers for a move to drop off the
+     * order, and updates the moves to reflect this. It then checks if the drone needs to
+     * return to Appleton tower.
+     *
+     * @param currentOrder the current order
+     * @return a boolean stating whether the drone must finish deliveries
+     */
+    private boolean deliverOrder(Order currentOrder) {
         LongLat goal = currentOrder.getDeliverTo();
         findGoal(goal);
         currentLoc = currentLoc.nextPosition(-999);
-        movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
-        movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
-        moves.add(new Move(currentOrder.getOrderNo(),currentLoc,-999,currentLoc));
+        updateMoves(currentLoc,currentLoc,-999);
         return checkMoves();
     }
 
-    public boolean checkMoves() {
+    /**
+     * Checks whether the drone has enough moves to safely continue deliveries
+     * after the last move made, or if it needs to end deliveries and return.
+     *
+     * @return a boolean stating whether the drone must finish deliveries
+     */
+    private boolean checkMoves() {
         return (1500 - moves.size()) <= 100;
-        /*
-        LongLat tempCurrentLoc = currentLoc;
-        findGoal(appletonTower);
-        int distance = currentPath.size();
-        currentLoc = tempCurrentLoc;
-        boolean noMoves = ((1500-moves.size())<distance+50);
-        return noMoves;
-         */
 
     }
 
-    public void findGoal(LongLat goal) {
+    /**
+     * Finds the most advantageous goal for the drone to aim for. If the direct path
+     * to the next goal passes over the no-fly zone, it instead moves towards the closest
+     * landmark to the current goal, and then moves to the goal instead.
+     *
+     * @param goal a LongLat containing the current goal the drone needs to get to
+     */
+    private void findGoal(LongLat goal) {
         if (!validMove(currentLoc,goal)) {
             moveToGoal(closestLandmark(goal));
         }
         moveToGoal(goal);
     }
 
-    public LongLat closestLandmark(LongLat shopLoc) {
+    /**
+     * @param goalLoc the location of the current goal
+     * @return a LongLat containing the coordinates of the landmark closest to the current goal
+     */
+    private LongLat closestLandmark(LongLat goalLoc) {
         double minDist = Double.POSITIVE_INFINITY;
-        LongLat goal = shopLoc;
+        LongLat goal = goalLoc;
         for (LongLat landmark : landmarks) {
-            if (shopLoc.distanceTo(landmark) < minDist & validMove(currentLoc,landmark)) {
-                minDist = shopLoc.distanceTo(landmark);
+            if (goalLoc.distanceTo(landmark) < minDist & validMove(currentLoc,landmark)) {
+                minDist = goalLoc.distanceTo(landmark);
                 goal = landmark;
             }
         }
         return goal;
     }
 
-    public void moveToGoal (LongLat goal) {
+    /**
+     * While the drone is not close to the goal, it updates the current location
+     * to the best move found to get to the goal.
+     *
+     * @param goal a LongLat containing the current goal
+     */
+    private void moveToGoal (LongLat goal) {
         while (!currentLoc.closeTo(goal)) {
             currentLoc = findMove(goal);
         }
     }
 
-    public LongLat findMove(LongLat goal) {
+    /**
+     * Finds the best move from the current location towards the current goal. It tests each possible
+     * angle between 0 and 360, chooses the one which gets the closest to the goal, and updates the
+     * moves to reflect the move being made.
+     *
+     * @param goal the current goal
+     * @return a LongLat containing the new move
+     */
+    private LongLat findMove(LongLat goal) {
         int angle;
         LongLat newMove = currentLoc;
         LongLat testMove;
@@ -252,22 +326,22 @@ public class Path {
                 chosenAngle = angle;
             }
         }
-        movesLines.add(Point.fromLngLat(currentLoc.getLongitude(), currentLoc.getLatitude()));
-        movesLines.add(Point.fromLngLat(newMove.getLongitude(), newMove.getLatitude()));
-        moves.add(new Move(currentOrder.getOrderNo(),currentLoc,chosenAngle,newMove));
+        updateMoves(currentLoc,newMove,chosenAngle);
         return newMove;
     }
 
-    public boolean validMove(LongLat currentLoc, LongLat newLoc) {
+    /**
+     * Checks whether a move is within in the confinement area, and does not cross the convex
+     * hull created around the no-fly zone.
+     *
+     * @param currentLoc the current location of the drone
+     * @param newLoc     the prospective move being checked
+     * @return a boolean stating whether the move is valid or not
+     */
+    private boolean validMove(LongLat currentLoc, LongLat newLoc) {
         boolean valid = true;
-        Line2D.Double plannedMove = new Line2D.Double(currentLoc.getLongitude(),
-                currentLoc.getLatitude(),newLoc.getLongitude(),newLoc.getLatitude());
-
-        for (Line2D.Double line : noFlyZoneLines) {
-            if (plannedMove.intersectsLine(line)) {
-                valid = false;
-            }
-        }
+        Line2D.Double plannedMove = new Line2D.Double(currentLoc.longitude,
+                currentLoc.latitude,newLoc.longitude,newLoc.latitude);
 
         for (Line2D.Double line : convexHullLines) {
             if (plannedMove.intersectsLine(line)) {
@@ -281,6 +355,9 @@ public class Path {
         return valid;
     }
 
+    /**
+     * @return a FeatureCollection containing the created path features of the drone's journey
+     */
     public FeatureCollection getPathFeatures() {
         Feature feature;
         FeatureCollection pathFeatures;
@@ -290,11 +367,20 @@ public class Path {
         return pathFeatures;
     }
 
+    /**
+     * @return an ArrayList of Moves describing the flightpath of the drone
+     */
     public ArrayList<Move> getFlightpath() {
         return moves;
     }
 
-    public void createMap(FeatureCollection pathFeatures,String day,String month,String year) {
+    /**
+     * @param pathFeatures the features of the path taken
+     * @param day          the day of deliveries
+     * @param month        the month of deliveries
+     * @param year         the year of deliveries
+     */
+    public void writeGeoJSON(FeatureCollection pathFeatures, String day, String month, String year) {
         try {
             File myObj = new File("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
             Files.deleteIfExists(myObj.toPath());
@@ -307,5 +393,11 @@ public class Path {
             System.out.println("An error occurred.");
             e.printStackTrace();
         }
+    }
+
+    public void updateMoves(LongLat firstLoc, LongLat secondLoc,int angle) {
+        movesLines.add(Point.fromLngLat(firstLoc.longitude, firstLoc.latitude));
+        movesLines.add(Point.fromLngLat(secondLoc.longitude, secondLoc.latitude));
+        moves.add(new Move(currentOrder.orderNo,firstLoc,angle,secondLoc));
     }
 }

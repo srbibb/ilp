@@ -6,13 +6,14 @@ package uk.ac.ed.inf;
  */
 public class LongLat {
 
-    /** The longitude of the represented point */
-    private final double longitude;
-    /** The latitude of the represented point */
-    private final double latitude;
+    /** the longitude of the represented point */
+    public final double longitude;
+    /** ghe latitude of the represented point */
+    public final double latitude;
 
     /**
-     * Constructor for LongLat class.
+     * Constructor for LongLat class given a pair of doubles.
+     *
      * @param lon the longitude of the represented point
      * @param lat the latitude of the represented point
      */
@@ -21,14 +22,11 @@ public class LongLat {
         latitude = lat;
     }
 
-    public double getLongitude() {
-        return longitude;
-    }
-
-    public double getLatitude() {
-        return latitude;
-    }
-
+    /**
+     * Constructor for LongLat class given as a What3Words
+     *
+     * @param coordinates the coordinates contained in the LngLat of the What3Words
+     */
     public LongLat(What3Words.LngLat coordinates) {
         longitude = coordinates.getLng();
         latitude = coordinates.getLat();
@@ -37,6 +35,7 @@ public class LongLat {
     /**
      * Checks whether the point is between the longitude -3.184319 and -3.192473,
      * and that the latitude is between 55.942617 and 55.946233.
+     *
      * @return a boolean value which is true if the point is within the confinement
      * area and false otherwise
      */
@@ -47,6 +46,7 @@ public class LongLat {
     /**
      * Calculates the distance between this point and the given point, using the
      * Pythagorean distance formula.
+     *
      * @param compareValue the given point
      * @return a double containing the distance between this point and the given point
      */
@@ -57,6 +57,7 @@ public class LongLat {
 
     /**
      * Checks whether the given point is less than 0.00015 degrees of this point.
+     *
      * @param compareValue the given point
      * @return a boolean value which is true if the given point is within 0.00015
      * of this point and false otherwise
@@ -68,6 +69,7 @@ public class LongLat {
     /**
      * Calculates the point that the drone will next move to with the current point
      * and an angle.
+     *
      * @param angle an integer containing the given angle of movement
      * @return a new instance of LongLat containing the new point the drone will move to
      */

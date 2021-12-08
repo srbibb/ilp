@@ -27,7 +27,6 @@ public class App {
         String databasePort = args[4];
 
         WebServer server = new WebServer(webPort);
-        Menus menu = new Menus(server);
         Database db = new Database(day, month, year, databasePort);
         ArrayList<Order> orders;
         ArrayList<Order> delivered;
@@ -35,9 +34,9 @@ public class App {
         try {
             orders = db.getOrders(server);
             Path path = new Path(orders,server);
-            delivered = path.generatePath(menu);
+            delivered = path.generatePath();
             pathFeatures = path.getPathFeatures();
-            path.createMap(pathFeatures,day,month,year);
+            path.writeGeoJSON(pathFeatures,day,month,year);
             db.writeOrders(delivered);
             db.writeFlightpath(path.getFlightpath());
         } catch (SQLException dbUnavailable) {

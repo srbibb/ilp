@@ -10,52 +10,46 @@ import java.util.Set;
  * the shops the drone needs to visit to collect the items and the cost of the order.
  */
 public class Order {
-    private final ArrayList<String> items = new ArrayList<>();
-    private final String orderNo;
+    /** each of the items in the order */
+    public final ArrayList<String> items = new ArrayList<>();
+    /** the order number associated with the order */
+    public final String orderNo;
+    /** the coordinates the order should be delivered to */
     private LongLat deliverTo;
+    /** the whatthreewords associated with the location the order should
+     * be delivered to */
     private String deliveryAddress;
+    /** the shop(s) the items in the order can be collected from */
     private Set<String> shops;
+    /** the total cost of the order in pence */
     private int cost;
 
     /**
-     * Instantiates a new Order.
+     * Constructor for the Order class.
      *
-     * @param orderNumber the order number
+     * @param orderNumber the order number for the order
      */
     public Order(String orderNumber) {
         orderNo = orderNumber;
     }
 
     /**
-     * Add item.
-     *
-     * @param orderItem the order item
-     */
-    public void addItem(String orderItem) {
-        items.add(orderItem);
-    }
-
-    /**
-     * Sets deliver to.
-     *
-     * @param w3w the w 3 w
+     * @param w3w a LongLat containing the coordinates of the delivery address
+     *            from the whatthreewords location
      */
     public void setDeliverTo(LongLat w3w) {
         deliverTo = w3w;
     }
 
     /**
-     * Sets delivery address.
-     *
-     * @param address the address
+     * @param address a String containing the whatthreewords address of
+     *                the delivery location
      */
     public void setDeliveryAddress(String address) {
         deliveryAddress = address;
     }
 
     /**
-     * Sets shops.
-     *
      * @param shopMap the shop map
      */
     public void setShops(HashMap<String,String> shopMap) {
@@ -67,63 +61,39 @@ public class Order {
     }
 
     /**
-     * Sets cost.
-     *
-     * @param costInPence the cost in pence
+     * @param itemMap a HashMap containing each item from the menu and its price
      */
-    public void setCost(int costInPence) {
-        cost = costInPence;
+    public void setCost(HashMap<String,Integer> itemMap) {
+        int price = 50;
+        for (String wantedItem : items) {
+            price += itemMap.get(wantedItem);
+        }
+        cost = price;
     }
 
     /**
-     * Gets order no.
-     *
-     * @return the order no
-     */
-    public String getOrderNo() {
-        return orderNo;
-    }
-
-    /**
-     * Gets shop list.
-     *
-     * @return the shop list
+     * @return a Set containing each shop on the list without duplicates
      */
     public Set<String> getShopList() {
         return shops;
     }
 
     /**
-     * Gets deliver to.
-     *
-     * @return the deliver to
+     * @return a LongLat containing the coordinates to deliver to
      */
     public LongLat getDeliverTo() {
         return deliverTo;
     }
 
     /**
-     * Gets delivery address.
-     *
-     * @return the delivery address
+     * @return a String containing the whatthreewords delivery address
      */
     public String getDeliveryAddress() {
         return deliveryAddress;
     }
 
     /**
-     * Gets items.
-     *
-     * @return the items
-     */
-    public ArrayList<String> getItems() {
-        return items;
-    }
-
-    /**
-     * Gets cost.
-     *
-     * @return the cost
+     * @return an integer containing the cost of the order
      */
     public int getCost() {
         return cost;

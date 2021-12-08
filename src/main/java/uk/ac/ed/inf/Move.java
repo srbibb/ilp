@@ -6,23 +6,21 @@ package uk.ac.ed.inf;
  * angle the move was made at, and the end of the move in both latitude and longitude.
  */
 public class Move {
+    /** the orderNo of the order being delivered at the time of the move, contains null
+     * if returning at the end of deliveries */
+    public final String orderNo;
     /**
-     * the orderNo of the order being delivered at the time of the move, contains null
-     * if returning at the end of deliveries
+     * the point where the drone started the move
      */
-    private final String orderNo;
+    public final LongLat startPoint;
     /**
-     * the point where the drone started this move
+     * the angle at which the move was made
      */
-    private final LongLat startPoint;
+    public final int angle;
     /**
-     * the angle at which this move was made
+     * the point where the drone ended the move
      */
-    private final int angle;
-    /**
-     * the point where the drone ended this move
-     */
-    private final LongLat endPoint;
+    public final LongLat endPoint;
 
     /**
      * Constructor for the Move class.
@@ -38,33 +36,5 @@ public class Move {
         startPoint = start;
         angle = angleOfMove;
         endPoint = end;
-    }
-
-    /**
-     * @return a String containing the order number
-     */
-    public String getOrderNo() {
-        return orderNo;
-    }
-
-    /**
-     * @return a LongLat containing the start point
-     */
-    public LongLat getStartPoint() {
-        return startPoint;
-    }
-
-    /**
-     * @return an integer containing the angle
-     */
-    public int getAngle() {
-        return angle;
-    }
-
-    /**
-     * @return a LongLat containing the end point
-     */
-    public LongLat getEndPoint() {
-        return endPoint;
     }
 }
