@@ -157,21 +157,21 @@ public class Path {
 
     /**
      * Chooses the next order to be collected and delivered by the drone. It chooses whichever order
-     * has a shop to collect items from which is closest to the drone's current location.
+     * has the highest monetary value out of the remaining orders, in order to maximise the amount
+     * of money earned with the orders delivered.
      *
      * @return an Order containing the chosen order
      */
-    private Order chooseOrder() {
-        double closestDist = Double.POSITIVE_INFINITY;
-        double currentDist;
+    public Order chooseOrder() {
+        double highestCost = 0;
+        double currentCost;
         Order currentOrd = orders.get(0);
         for (Order order : orders) {
-            for (String shop: order.getShopList()) {
-                currentDist = currentLoc.distanceTo(shopLocations.get(shop));
-                if (currentDist < closestDist) {
-                    closestDist = currentDist;
-                    currentOrd = order;
-                }
+            currentCost = order.getCost();
+            if (currentCost > highestCost) {
+                highestCost = currentCost;
+                currentOrd = order;
+
             }
         }
         return currentOrd;
@@ -185,7 +185,7 @@ public class Path {
      */
     private void endDeliveries() {
         currentOrder = new Order(null);
-        moveToGoal(appletonTower);
+        findGoal(appletonTower);
         System.out.println("delivered: " + deliveredCost);
         System.out.println("total: " + totalCost);
         System.out.println("percentage income: " + (deliveredCost/totalCost)*100 + "%");
@@ -382,10 +382,10 @@ public class Path {
      */
     public void writeGeoJSON(FeatureCollection pathFeatures, String day, String month, String year) {
         try {
-            File myObj = new File("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
+            File myObj = new File("drone-" + day + "-" + month + "-" + year + ".geojson");
             Files.deleteIfExists(myObj.toPath());
             if (myObj.createNewFile()){
-                FileWriter myWriter = new FileWriter("C:\\Users\\sarah\\Documents\\2021FirstSemester\\ilp\\drone-" + day + "-" + month + "-" + year + ".geojson");
+                FileWriter myWriter = new FileWriter(myObj);
                 myWriter.write(pathFeatures.toJson());
                 myWriter.close();
             }
@@ -395,6 +395,14 @@ public class Path {
         }
     }
 
+    /**
+     * Adds a move to both the list of lines representing the moves made by the drone, and
+     * the list of moves made.
+     *
+     * @param firstLoc the location where the drone began the move
+     * @param secondLoc the location where the drone ended the move
+     * @param angle the angle the move was made at
+     */
     public void updateMoves(LongLat firstLoc, LongLat secondLoc,int angle) {
         movesLines.add(Point.fromLngLat(firstLoc.longitude, firstLoc.latitude));
         movesLines.add(Point.fromLngLat(secondLoc.longitude, secondLoc.latitude));

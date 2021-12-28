@@ -42,34 +42,24 @@ public class WebServer {
     public WebServer(String port) {
         machineName = "localhost";
         portName = port;
+        itemMap = parseMenu();
         shopMap = parseShops();
         locationMap = parseShopLocations();
-        itemMap = parseMenu();
     }
 
     /**
-     * Gets the menu from the web server. It connects to the
-     * web server with the specified name and at the specified port, and
-     * gets the json file containing the menu. It parses the file into a
-     * list of the Shop class, and then converts the name of each item and
-     * price to a HashMap, to find prices.
+     * Gets the menu from the web server. It creates a request to the server
+     * and uses getMenu to get the list of shops. It then converts the name
+     * of each item and price to a HashMap, to find prices.
      *
      * @return HashMap of the name of each menu item and its price
      */
     private HashMap<String, Integer> parseMenu() {
         String urlString = "http://" + machineName +":" + portName + "/menus/menus.json";
-        String menusInput;
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
-        HttpResponse<String> response;
         {
             try {
-                response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    System.exit(1);
-                }
-                menusInput = response.body();
-                Type listType = new TypeToken<ArrayList<Shop>>() {}.getType();
-                ArrayList<Shop> shops = new Gson().fromJson(menusInput, listType);
+                ArrayList<Shop> shops = getMenu(request);
                 HashMap<String, Integer> menu = new HashMap<>();
                 for (Shop shop: shops) {
                     for (Shop.Item item: shop.getMenu()) {
@@ -87,28 +77,37 @@ public class WebServer {
     }
 
     /**
-     * Gets shops from the web server. It connects to the
-     * web server with the specified name and at the specified port, and
-     * gets the json file containing the menu. It parses the file into a
-     * list of the Shop class, and then converts each item and the shop it
-     * is sold in to a HashMap, to find the relevant shop for each item.
-     *
+     * Obtains the list of shops from the menu stored on the server.
+     * @param request the request created for the server
+     * @return an ArrayList of Shops obtained from the menu
+     * @throws IOException if there is an issue with reading from the server
+     * @throws InterruptedException if the process is interrupted and unable to complete
+     */
+    private ArrayList<Shop> getMenu(HttpRequest request) throws IOException, InterruptedException {
+        HttpResponse<String> response;
+        String menusInput;
+        response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            System.exit(1);
+        }
+        menusInput = response.body();
+        Type listType = new TypeToken<ArrayList<Shop>>() {}.getType();
+        return new Gson().fromJson(menusInput, listType);
+    }
+
+    /**
+     * Gets shops from the web server. It creates a request to the server
+     * and uses getMenu to get the list of shops. It then converts the name
+     * of each item and the shop it is sold at into a HashMap, to find where
+     * each item must be collected from.
      * @return HashMap of the name of each menu item and the shop which sells it
      */
     private HashMap<String, String> parseShops() {
         String urlString = "http://" + machineName +":" + portName + "/menus/menus.json";
-        String shopInput;
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
-        HttpResponse<String> response;
         {
             try {
-                response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    System.exit(1);
-                }
-                shopInput = response.body();
-                Type listType = new TypeToken<ArrayList<Shop>>() {}.getType();
-                ArrayList<Shop> shops = new Gson().fromJson(shopInput, listType);
+                ArrayList<Shop> shops = getMenu(request);
                 HashMap<String, String> shopList = new HashMap<>();
                 for (Shop shop: shops) {
                     for (Shop.Item item: shop.getMenu()) {
@@ -126,11 +125,9 @@ public class WebServer {
     }
 
     /**
-     * Gets the locations of the shops from the web server. It connects to the
-     * web server with the specified name and at the specified port, and
-     * gets the json file containing the menu. It parses the file into a list of
-     * the Shop class, and then converts each shop and the coordinates of the location
-     * in to a HashMap, obtained from the server using the whatthreewords address,
+     * Gets the locations of the shops from the web server. It creates a request to the server
+     * and uses getMenu to get the list of shops. It converts each shop and the coordinates
+     * of the location in to a HashMap, obtained from the server using the whatthreewords address,
      * to find the relevant location for each shop. The coordinates are obtained by
      * parsing the whatthreewords address.
      *
@@ -138,18 +135,10 @@ public class WebServer {
      */
     private HashMap<String, LongLat> parseShopLocations() {
         String urlString = "http://" + machineName +":" + portName + "/menus/menus.json";
-        String shopInput;
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
-        HttpResponse<String> response;
         {
             try {
-                response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    System.exit(1);
-                }
-                shopInput = response.body();
-                Type listType = new TypeToken<ArrayList<Shop>>() {}.getType();
-                ArrayList<Shop> shops = new Gson().fromJson(shopInput, listType);
+                ArrayList<Shop> shops = getMenu(request);
                 HashMap<String, LongLat> shopW3W = new HashMap<>();
                 for (Shop shop: shops) {
                     shopW3W.put(shop.getShop(), parseWhatThreeWords(shop.getLocation()));
@@ -226,6 +215,7 @@ public class WebServer {
 
             ArrayList<Polygon> polygons = new ArrayList<>();
 
+            assert features != null;
             for (Feature feature: features) {
                 polygons.add((Polygon)feature.geometry());
             }
@@ -268,8 +258,10 @@ public class WebServer {
 
             List<Feature> features = FeatureCollection.fromJson(mapInput).features();
 
+            assert features != null;
             for (Feature feature: features) {
                 Point point = ((Point)feature.geometry());
+                assert point != null;
                 landmarks.add(new LongLat(point.longitude(), point.latitude()));
             }
 

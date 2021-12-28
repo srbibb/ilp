@@ -6,6 +6,7 @@ package uk.ac.ed.inf;
  * angle the move was made at, and the end of the move in both latitude and longitude.
  */
 public class Move {
+
     /** the orderNo of the order being delivered at the time of the move, contains null
      * if returning at the end of deliveries */
     public final String orderNo;
